@@ -1,32 +1,28 @@
+from flask import Flask, request
 import os
-import logging
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+import telegram
 
-# Setup logging (optional but recommended)
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
+TOKEN = "8473212500:AAEgo9Zz85zItQXwX8rKUslhm1ZqeQJ42iM"
+bot = telegram.Bot(token=TOKEN)
 
-# Get the bot token from environment variable
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+app = Flask(__name__)
 
-if TELEGRAM_TOKEN is None:
-    raise EnvironmentError("❌ TELEGRAM_TOKEN is not set in environment variables.")
+@app.route('/')
+def index():
+    return "Bot is running"
 
-# Example command handler
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("Hello! I'm alive and running on Render!")
+@app.route(f'/{TOKEN}', methods=['POST'])
+def receive_update():
+    update = telegram.Update.de_json(request.get_json(force=True), bot)
+    chat_id = update.message.chat.id
+    text = update.message.text
 
-def main():
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    # Basic reply
+    bot.send_message(chat_id=chat_id, text=f"You said: {text}")
+    return "ok"
 
-    # Register handlers
-    app.add_handler(CommandHandler("start", start))
-
-    # Run the bot
-    app.run_polling()
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    webhook_url = f"https://{os.environ['RENDER_EXTERNAL_HOSTNAME']}/{TOKEN}"
+    bot.setWebhook(webhook_url)
+    app.run(host='0.0.0.0', port=port)
