@@ -1,26 +1,32 @@
-import logging
 import os
-from telegram.ext import Application
-from bot.config import TELEGRAM_TOKEN
-from bot.handlers import register_handlers
-from bot.scheduler import start_scheduler
-from bot.db import init_db
+import logging
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Setup logging (optional but recommended)
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
-async def main():
-    if not TELEGRAM_TOKEN:
-        raise ValueError("TELEGRAM_TOKEN is not set! Please check your environment variables.")
+# Get the bot token from environment variable
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
-    await init_db()
+if TELEGRAM_TOKEN is None:
+    raise EnvironmentError("❌ TELEGRAM_TOKEN is not set in environment variables.")
 
-    application = Application.builder().token(TELEGRAM_TOKEN).build()
-    register_handlers(application)
-    start_scheduler(application)
-    await application.run_polling()
+# Example command handler
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text("Hello! I'm alive and running on Render!")
 
-if __name__ == '__main__':
-    import asyncio
-    asyncio.run(main())
+def main():
+    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
+    # Register handlers
+    app.add_handler(CommandHandler("start", start))
+
+    # Run the bot
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
