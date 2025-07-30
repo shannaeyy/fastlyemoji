@@ -1,3 +1,6 @@
-python-telegram-bot[asyncio]==20.6
+python-telegram-bot==20.6
+flask
+httpx
 python-dotenv
+pymongo
 motor
