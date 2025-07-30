@@ -1,28 +1,34 @@
 from flask import Flask, request
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
 import os
-import telegram
 
-TOKEN = "8473212500:AAEgo9Zz85zItQXwX8rKUslhm1ZqeQJ42iM"
-bot = telegram.Bot(token=TOKEN)
+TOKEN = os.getenv("8473212500:AAEgo9Zz85zItQXwX8rKUslhm1ZqeQJ42iM")
 
 app = Flask(__name__)
+bot_app = Application.builder().token(TOKEN).build()
+
+# Command handler
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Hello! I'm alive!")
+
+bot_app.add_handler(CommandHandler("start", start))
 
 @app.route('/')
 def index():
-    return "Bot is running"
+    return 'Bot is alive.'
 
 @app.route(f'/{TOKEN}', methods=['POST'])
-def receive_update():
-    update = telegram.Update.de_json(request.get_json(force=True), bot)
-    chat_id = update.message.chat.id
-    text = update.message.text
-
-    # Basic reply
-    bot.send_message(chat_id=chat_id, text=f"You said: {text}")
+def webhook():
+    update = Update.de_json(request.get_json(force=True), bot_app.bot)
+    bot_app.update_queue.put_nowait(update)
     return "ok"
 
+# Register webhook on startup
+@app.before_first_request
+def set_webhook():
+    url = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/{TOKEN}"
+    bot_app.bot.set_webhook(url)
+
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    webhook_url = f"https://{os.environ['RENDER_EXTERNAL_HOSTNAME']}/{TOKEN}"
-    bot.setWebhook(webhook_url)
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
